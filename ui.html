@@ -1,0 +1,22 @@
+<div id="section" class="abdest">
+  <h1>Destination</h1>
+  <p>Position actuelle&nbsp;: <span class="coord">
+    [<span id="coord-x"></span>][<span id="coord-y"></span>]
+  </span></p>
+  <p>Niveau du moteur&nbsp;: <span id="engine"></span></p>
+  <p>Votre prochaine destination&nbsp;:
+    <input id="dest-x" type="number" min="-999" max="999" value="0" />
+    <input id="dest-y" type="number" min="-999" max="999" value="0" />
+  </p>
+  <p>
+    Distance horizontale&nbsp;:    <span id="dist-h"></span> <br />
+    Distance verticale&nbsp;:      <span id="dist-v"></span> <br />
+    <strong>Distance totale&nbsp;: <span id="dist-tot"></span> </strong>
+  </p>
+  <p>Durée minimum du voyage (à raison de 3 parties par jour)&nbsp;:
+    <span id="trip"></span>
+  </p>
+  <p>Cap à suivre&nbsp;:
+    <canvas id="cape" width="100" height="100"></canvas>
+  </p>
+</div>
