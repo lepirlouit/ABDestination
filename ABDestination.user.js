@@ -5,7 +5,6 @@
 // @version     1.0
 // @include     http://www.alphabounce.com/
 // @include     http://www.alphabounce.com/user/*
-// @grant       GM_info
 // @grant       GM_getValue
 // @grant       GM_setValue
 // @grant       GM_getResourceText
@@ -381,22 +380,22 @@ function draw($cvs, θ, paintStyles) {
   var arrowRadius = r-4;
   cx.lineWidth = 1.5;
   cx.beginPath();
-  cx.moveTo(-0.5 + Math.round(arrowRadius * cos(θ)),
-            -0.5 + Math.round(arrowRadius * sin(θ))); // A
-  cx.lineTo(-0.5 + Math.round(0.5*arrowRadius * cos(0.6 + θ)),
-            -0.5 + Math.round(0.5*arrowRadius * sin(0.6 + θ))); // B
-  cx.lineTo(-0.5 + Math.round(0.5*arrowRadius * cos(0.09 + θ)),
-            -0.5 + Math.round(0.5*arrowRadius * sin(0.09 + θ))); // C
-  cx.lineTo(-0.5 + Math.round(0.96*arrowRadius * cos(π - 0.15 + θ)),
-            -0.5 + Math.round(0.96*arrowRadius * sin(π - 0.15 + θ))); // D
-  cx.lineTo(-0.5 + Math.round(0.9*arrowRadius * cos(π + θ)),
-            -0.5 + Math.round(0.9*arrowRadius * sin(π + θ))); // E
-  cx.lineTo(-0.5 + Math.round(0.96*arrowRadius * cos(π + 0.15 + θ)),
-            -0.5 + Math.round(0.96*arrowRadius * sin(π + 0.15 + θ))); // F
-  cx.lineTo(-0.5 + Math.round(0.5*arrowRadius * cos(-0.09 + θ)),
-            -0.5 + Math.round(0.5*arrowRadius * sin(-0.09 + θ))); // G
-  cx.lineTo(-0.5 + Math.round(0.5*arrowRadius * cos(-0.6 + θ)),
-            -0.5 + Math.round(0.5*arrowRadius * sin(-0.6 + θ))); // H
+  cx.moveTo(-0.5 + Math.round(     arrowRadius * cos(θ)),
+            -0.5 + Math.round(     arrowRadius * sin(θ))); // A
+  cx.lineTo(-0.5 + Math.round(0.5 *arrowRadius * cos(θ + 0.6)),
+            -0.5 + Math.round(0.5 *arrowRadius * sin(θ + 0.6))); // B
+  cx.lineTo(-0.5 + Math.round(0.5 *arrowRadius * cos(θ + 0.09)),
+            -0.5 + Math.round(0.5 *arrowRadius * sin(θ + 0.09))); // C
+  cx.lineTo(-0.5 + Math.round(0.96*arrowRadius * cos(θ + π - 0.15)),
+            -0.5 + Math.round(0.96*arrowRadius * sin(θ + π - 0.15))); // D
+  cx.lineTo(-0.5 + Math.round(0.9 *arrowRadius * cos(θ + π)),
+            -0.5 + Math.round(0.9 *arrowRadius * sin(θ + π))); // E
+  cx.lineTo(-0.5 + Math.round(0.96*arrowRadius * cos(θ + π + 0.15)),
+            -0.5 + Math.round(0.96*arrowRadius * sin(θ + π + 0.15))); // F
+  cx.lineTo(-0.5 + Math.round(0.5 *arrowRadius * cos(θ - 0.09)),
+            -0.5 + Math.round(0.5 *arrowRadius * sin(θ - 0.09))); // G
+  cx.lineTo(-0.5 + Math.round(0.5 *arrowRadius * cos(θ - 0.6)),
+            -0.5 + Math.round(0.5 *arrowRadius * sin(θ - 0.6))); // H
   cx.closePath();
   cx.strokeStyle = paintStyles["#cape .arrow"].color;
   cx.fillStyle   = paintStyles["#cape .arrow"].backgroundColor;
