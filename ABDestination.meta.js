@@ -8,8 +8,8 @@
 // @license     GPLv2; http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
 // @supportURL  https://github.com/Watilin/ABDestination/issues
 //
-// @downloadURL https://raw.githubusercontent.com/Watilin/Pupil-Manager/master/ABDestination.user.js
-// @updateURL   https://raw.githubusercontent.com/Watilin/Pupil-Manager/master/ABDestination.meta.js
+// @downloadURL https://raw.githubusercontent.com/Watilin/ABDestination/master/ABDestination.user.js
+// @updateURL   https://raw.githubusercontent.com/Watilin/ABDestination/master/ABDestination.meta.js
 //
 // @include     http://www.alphabounce.com/
 // @include     http://www.alphabounce.com/user/*
