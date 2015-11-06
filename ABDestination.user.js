@@ -25,8 +25,6 @@
 
 "use strict";
 
-// Note: this userscript is Firefox only.
-
 // Table of Contents
 //  [SHI] Shims for Retarded Browsers
 //  [CON] Script Constants
