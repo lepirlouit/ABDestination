@@ -5,6 +5,7 @@
 // @version     1.0
 // @include     http://www.alphabounce.com/
 // @include     http://www.alphabounce.com/user/*
+// @grant       GM_info
 // @grant       GM_getValue
 // @grant       GM_setValue
 // @grant       GM_getResourceText
@@ -17,11 +18,30 @@
 // Note: this userscript is Firefox only.
 
 // Table of Contents
+//  [SHI] Shims for Retarded Browsers
 //  [CON] Script Constants
 //  [MAI] Main Script Section
 //  [UIM] UI Managment
 //  [ANI] Animation
 //  [UTI] Utils
+
+// [@SHI] Shims for Retarded Browsers //////////////////////////////////
+
+[ "slice", "forEach", "map", "filter", "some", "every", "reduce" ]
+  .forEach(function (methodName) {
+    if (!(methodName in Array)) {
+      Array[methodName] = function (iterable, callback, context) {
+        return Array.prototype[methodName]
+          .call(iterable, callback, context);
+      };
+    }
+  });
+
+if (!("contains" in String.prototype)) {
+  String.prototype.contains = function contains(sub) {
+    return this.indexOf(sub) >= 0;
+  };
+}
 
 // [@CON] Script Constants /////////////////////////////////////////////
 
@@ -32,14 +52,12 @@ const FREE_FUEL = 3; // not intended to remain constant
 
 // [@MAI] Main Script Section //////////////////////////////////////////
 
-if (self === top &&
-    "/" === location.pathname) { // top-level window
-
-  let iw = document.getElementById("iframe").contentWindow;
+function runTopWindow() {
+  var iw = document.getElementById("iframe").contentWindow;
 
   // hacking haxe.Http to retrieve player's coordinates
   // this avoids making an unnecessary request to the server
-  let proto = unsafeWindow.haxe.Http.prototype;
+  var proto = unsafeWindow.haxe.Http.prototype;
   proxifyFunction(proto, "request", function () {
     if (!this.url.startsWith("/user/data.xml")) return;
 
@@ -49,8 +67,8 @@ if (self === top &&
 
       var engineMatch = /\bengine="(\d+)"/.exec(str);
       if (engineMatch) {
-        let oldEngine = GM_getValue("engine", 1);
-        let engine = parseInt(engineMatch[1], 10);
+        var oldEngine = GM_getValue("engine", 1);
+        var engine = parseInt(engineMatch[1], 10);
         engineChanged = oldEngine !== engine;
         GM_setValue("engine", engine);
       }
@@ -58,10 +76,10 @@ if (self === top &&
       var xMatch = /\bx="(-?\d+)"/.exec(str);
       var yMatch = /\by="(-?\d+)"/.exec(str);
       if (xMatch && yMatch) {
-        let oldX = GM_getValue("x", 0);
-        let oldY = GM_getValue("y", 0);
-        let x = parseInt(xMatch[1], 10);
-        let y = parseInt(yMatch[1], 10);
+        var oldX = GM_getValue("x", 0);
+        var oldY = GM_getValue("y", 0);
+        var x = parseInt(xMatch[1], 10);
+        var y = parseInt(yMatch[1], 10);
         coordsChanged = (oldX !== x) || (oldY !== y);
         GM_setValue("x", x);
         GM_setValue("y", y);
@@ -74,27 +92,26 @@ if (self === top &&
       }
     });
   });
+}
 
-} else if ("/" === parent.location.pathname &&
-           location.pathname.startsWith("/user/")) { // iframe
+function runIframe() {
+  var $menuUl = document.querySelector("#menu ul");
 
-  let $menuUl = document.querySelector("#menu ul");
+  var $newLi = document.createElement("li");
+  var $oldLi = $menuUl.querySelector(".active");
+  var $ui;
+  var $section = document.getElementById("section");
 
-  let $newLi = document.createElement("li");
-  let $oldLi = $menuUl.querySelector(".active");
-  let $ui;
-  let $section = document.getElementById("section");
-
-  let $a = document.createElement("a");
+  var $a = document.createElement("a");
   $a.textContent = "Destination";
   $a.href = "/user/destination";
 
-  $a.addEventListener("click", event => {
+  $a.addEventListener("click", function (event) {
     event.preventDefault();
     if ($newLi.classList.contains("active")) return;
 
     if (!$ui) {
-      let fragment = injectUI();
+      var fragment = injectUI();
       $ui = fragment.querySelector("#section");
       $section.parentNode.insertBefore(fragment, $section.nextSibling);
     }
@@ -105,7 +122,7 @@ if (self === top &&
     requestAnimationFrame(updateUI);
   });
 
-  $oldLi.querySelector("a").addEventListener("click", event => {
+  $oldLi.querySelector("a").addEventListener("click", function (event) {
     if (!$newLi.classList.contains("active")) return;
 
     event.preventDefault();
@@ -117,13 +134,19 @@ if (self === top &&
 
   $newLi.appendChild($a);
   $menuUl.appendChild($newLi);
+}
 
+if (self === top && "/" === location.pathname) { // top-level window
+  runTopWindow();
+} else if ("/" === parent.location.pathname &&
+           location.pathname.startsWith("/user/")) { // iframe
+  runIframe();
 }
 
 // [@UIM] UI Managment /////////////////////////////////////////////////
 
-var [ injectUI, updateUI ] = (function () {
-
+var injectUI, updateUI;
+(function () {
   var $coordX, $coordY,
       $engine,
       $destX, $destY,
@@ -133,100 +156,102 @@ var [ injectUI, updateUI ] = (function () {
 
   var paintStyles = {};
 
-  return [
-    function injectUI() {
-      var fragment = document.createDocumentFragment();
-      var $container = document.createElement("div");
+  injectUI = function injectUI() {
+    var fragment = document.createDocumentFragment();
+    var $container = document.createElement("div");
 
-      var uiHtml = GM_getResourceText("ui-html");
-      var uiCss  = GM_getResourceText("ui-css");
+    var uiHtml = GM_getResourceText("ui-html");
+    var uiCss  = GM_getResourceText("ui-css");
 
-      var $style = document.createElement("style");
-      $style.type = "text/css";
-      $style.media = "screen";
-      $style.textContent = uiCss;
-      document.head.appendChild($style);
+    var $style = document.createElement("style");
+    $style.type = "text/css";
+    $style.media = "screen";
+    $style.textContent = uiCss;
+    document.head.appendChild($style);
 
-      var sheet = $style.sheet;
-      for (let rule of sheet.cssRules) {
-        if (rule.selectorText.startsWith("#cape .")) {
-          paintStyles[rule.selectorText] = rule.style;
-        }
+    var sheet = $style.sheet;
+    Array.forEach(sheet.cssRules, function (rule) {
+      if (rule.selectorText.startsWith("#cape .")) {
+        paintStyles[rule.selectorText] = rule.style;
       }
+    });
 
-      window.addEventListener("gameDataChanged", function () {
-        requestAnimationFrame(updateUI);
-      });
+    window.addEventListener("gameDataChanged", function () {
+      requestAnimationFrame(updateUI);
+    });
 
-      $container.innerHTML = uiHtml;
-      $coordX  = $container.querySelector("#coord-x");
-      $coordY  = $container.querySelector("#coord-y");
-      $engine  = $container.querySelector("#engine");
-      $destX   = $container.querySelector("#dest-x");
-      $destY   = $container.querySelector("#dest-y");
-      $distH   = $container.querySelector("#dist-h");
-      $distV   = $container.querySelector("#dist-v");
-      $distTot = $container.querySelector("#dist-tot");
-      $trip    = $container.querySelector("#trip");
-      $cape    = $container.querySelector("#cape");
+    $container.innerHTML = uiHtml;
+    $coordX  = $container.querySelector("#coord-x");
+    $coordY  = $container.querySelector("#coord-y");
+    $engine  = $container.querySelector("#engine");
+    $destX   = $container.querySelector("#dest-x");
+    $destY   = $container.querySelector("#dest-y");
+    $distH   = $container.querySelector("#dist-h");
+    $distV   = $container.querySelector("#dist-v");
+    $distTot = $container.querySelector("#dist-tot");
+    $trip    = $container.querySelector("#trip");
+    $cape    = $container.querySelector("#cape");
 
-      var timerId;
-      var destinationChange = function (event) {
-        clearTimeout(timerId);
-        timerId = setTimeout(function () {
-          GM_setValue("destinationX", $destX.value);
-          GM_setValue("destinationY", $destY.value);
-          updateUI();
-        }, 200);
-      };
+    var timerId;
+    var destinationChange = function (event) {
+      clearTimeout(timerId);
+      timerId = setTimeout(function () {
+        GM_setValue("destinationX", $destX.value);
+        GM_setValue("destinationY", $destY.value);
+        updateUI();
+      }, 200);
+    };
 
-      $destX.addEventListener("change", destinationChange);
-      $destX.addEventListener("keyup", destinationChange);
-      $destY.addEventListener("change", destinationChange);
-      $destY.addEventListener("keyup", destinationChange);
+    $destX.addEventListener("change", destinationChange);
+    $destX.addEventListener("keyup", destinationChange);
+    $destY.addEventListener("change", destinationChange);
+    $destY.addEventListener("keyup", destinationChange);
 
-      var cx = $cape.getContext("2d");
-      cx.translate($cape.width / 2, $cape.height / 2);
+    var cx = $cape.getContext("2d");
+    cx.translate($cape.width / 2, $cape.height / 2);
 
-      while ($container.firstChild) {
-        fragment.appendChild($container.firstChild);
-      }
-      return fragment;
-    },
-
-    function updateUI() {
-      var x      = parseInt(GM_getValue("x",            0), 10);
-      var y      = parseInt(GM_getValue("y",            0), 10);
-      var engine = parseInt(GM_getValue("engine",       1), 10);
-      var destX  = parseInt(GM_getValue("destinationX", 0), 10);
-      var destY  = parseInt(GM_getValue("destinationY", 0), 10);
-
-      $coordX.textContent = x;
-      $coordY.textContent = y;
-      $engine.textContent = engine;
-
-      $destX.value = destX;
-      $destY.value = destY;
-
-      var distH = destX - x;
-      var distV = destY - y;
-      var absDistH = Math.abs(distH);
-      var absDistV = Math.abs(distV);
-      var distTot = absDistH + absDistV;
-
-      $distH.textContent = absDistH;
-      $distV.textContent = absDistV;
-      $distTot.textContent = distTot;
-
-      var days = Math.ceil(distTot / (engine * FREE_FUEL));
-      $trip.textContent = days + (days >= 2 ? "\xA0jours" : "\xA0jour");
-
-      var angle = Math.atan(distV / distH);
-      if (distH < 0) angle += π;
-
-      animateAngleChange(angle, $cape, paintStyles);
+    while ($container.firstChild) {
+      fragment.appendChild($container.firstChild);
     }
-  ];
+    return fragment;
+  };
+
+  updateUI = function updateUI() {
+    var x      = parseInt(GM_getValue("x",            0), 10);
+    var y      = parseInt(GM_getValue("y",            0), 10);
+    var engine = parseInt(GM_getValue("engine",       1), 10);
+    var destX  = parseInt(GM_getValue("destinationX", 0), 10);
+    var destY  = parseInt(GM_getValue("destinationY", 0), 10);
+
+    $coordX.textContent = x;
+    $coordY.textContent = y;
+    $engine.textContent = engine;
+
+    /* Do not use `!==` here. Let the type coercion do its job-- this is
+      for Chrome which sees no problem with inputs of type number having
+      values of type string.
+    */
+    if (destX != $destX.value) $destX.value = destX;
+    if (destY != $destY.value) $destY.value = destY;
+
+    var distH = destX - x;
+    var distV = destY - y;
+    var absDistH = Math.abs(distH);
+    var absDistV = Math.abs(distV);
+    var distTot = absDistH + absDistV;
+
+    $distH.textContent = absDistH;
+    $distV.textContent = absDistV;
+    $distTot.textContent = distTot;
+
+    var days = Math.ceil(distTot / (engine * FREE_FUEL));
+    $trip.textContent = days + (days >= 2 ? "\xA0jours" : "\xA0jour");
+
+    var angle = Math.atan(distV / distH);
+    if (distH < 0) angle += π;
+
+    animateAngleChange(angle, $cape, paintStyles);
+  };
 }());
 
 // [@ANI] Animation ////////////////////////////////////////////////////
