@@ -2,7 +2,7 @@
 // @name        ABDestination
 // @namespace   fr.kergoz-panic.watilin
 // @description Choisissez une destination et ce script vous dira quelle direction prendre et quand vous arriverez.
-// @version     2.0
+// @version     2.1
 //
 // @author      Watilin
 // @license     GPLv2; http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
@@ -19,8 +19,8 @@
 // @grant       GM_setValue
 // @grant       GM_getResourceText
 //
-// @resource    ui-html             ./ui.html?v=2.0
-// @resource    ui-css              ./ui.css?v=2.0
+// @resource    ui-html             ui.html?v=2.1
+// @resource    ui-css              ui.css?v=2.1
 // ==/UserScript==
 
 "use strict";
@@ -56,7 +56,6 @@ if (!("contains" in String.prototype)) {
 const π = Math.PI;
 const ANIM_DURATION = 1200; // ms
 const WORMHOLE_THRESHOLD = 4000; // ms
-const FREE_FUEL = 3; // not intended to remain constant
 
 // [@MAI] Main Script Section //////////////////////////////////////////
 
@@ -156,10 +155,12 @@ if (self === top && "/" === location.pathname) { // top-level window
 var injectUI, updateUI;
 (function () {
   var $coordX, $coordY,
-      $engine,
+      $engine, $move, $accel,
+      $radar, $sight,
       $destX, $destY,
       $distH, $distV, $distTot,
-      $trip,
+      $fuel,
+      $gamesE, $tripE, $gamesU, $tripU,
       $cape;
 
   var paintStyles = {};
@@ -192,13 +193,35 @@ var injectUI, updateUI;
     $coordX  = $container.querySelector("#coord-x");
     $coordY  = $container.querySelector("#coord-y");
     $engine  = $container.querySelector("#engine");
+    $move    = $container.querySelector("#move-range");
+    $accel   = $container.querySelector("#accel");
+    $radar   = $container.querySelector("#radar");
+    $sight   = $container.querySelector("#sight-range");
     $destX   = $container.querySelector("#dest-x");
     $destY   = $container.querySelector("#dest-y");
     $distH   = $container.querySelector("#dist-h");
     $distV   = $container.querySelector("#dist-v");
     $distTot = $container.querySelector("#dist-tot");
-    $trip    = $container.querySelector("#trip");
+    $fuel    = $container.querySelector("#fuel");
+    $gamesE  = $container.querySelector("#games-explored");
+    $tripE   = $container.querySelector("#trip-explored");
+    $gamesU  = $container.querySelector("#games-unseen");
+    $tripU   = $container.querySelector("#trip-unseen");
     $cape    = $container.querySelector("#cape");
+
+    // uncomment following console.log when testing with Chrome
+    // $accel.addEventListener("click", console.log.bind(console));
+    $accel.addEventListener("change", function (event) {
+      // console.log(this.checked);
+      GM_setValue("hasAccelerator", this.checked);
+      updateUI();
+    });
+
+    var radarChange = function (event) {
+      // GM_setValue();
+    };
+    $radar.addEventListener("change", radarChange);
+    $radar.addEventListener("keyup", radarChange);
 
     var timerId;
     var destinationChange = function (event) {
@@ -230,30 +253,34 @@ var injectUI, updateUI;
     var engine = parseInt(GM_getValue("engine",       1), 10);
     var destX  = parseInt(GM_getValue("destinationX", 0), 10);
     var destY  = parseInt(GM_getValue("destinationY", 0), 10);
+    var hasAccel = GM_getValue("hasAccelerator");
 
     $coordX.textContent = x;
     $coordY.textContent = y;
-    $engine.textContent = engine;
+    $engine.textContent = engine - 1;
+    $move.textContent = engine;
+    $accel.checked = hasAccel;
 
-    /* Do not use `!==` here. Let the type coercion do its job-- this is
-      for Chrome which sees no problem with inputs of type number having
-      values of type string.
-    */
-    if (destX != $destX.value) $destX.value = destX;
-    if (destY != $destY.value) $destY.value = destY;
+    if (destX.toString() !== $destX.value) $destX.value = destX;
+    if (destY.toString() !== $destY.value) $destY.value = destY;
 
     var distH = destX - x;
     var distV = destY - y;
     var absDistH = Math.abs(distH);
     var absDistV = Math.abs(distV);
     var distTot = absDistH + absDistV;
+    var freeFuel = hasAccel ? 4 : 3;
 
     $distH.textContent = absDistH;
     $distV.textContent = absDistV;
     $distTot.textContent = distTot;
 
-    var days = Math.ceil(distTot / (engine * FREE_FUEL));
-    $trip.textContent = days + (days >= 2 ? "\xA0jours" : "\xA0jour");
+    $fuel.textContent = freeFuel;
+
+    var eGames = Math.ceil(distTot / engine);
+    var eDays = Math.ceil(eGames / freeFuel);
+    $gamesE.textContent = eGames;
+    $tripE.textContent = eDays;
 
     var angle = Math.atan(distV / distH);
     if (distH < 0) angle += π;

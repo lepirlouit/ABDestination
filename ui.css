@@ -1,37 +1,104 @@
-#section.abdest .coord {
-  cursor: default;
-}
+/* Panels */
 
-#section.abdest p {
+#section.abdest .panel {
   background: #475682;
   border-radius: 5px;
   padding: 3px 4px;
-  margin: 3px;
+  margin: 0 3px 3px;
+}
+
+/* hack to stop whitespace from messing with inline-block positioning */
+#section.abdest { font-size: 0; }
+#section.abdest .panel { font-size: 10pt; }
+
+#section.abdest .panel.left,
+#section.abdest .panel.right {
+  display: inline-block;
+  width: calc(50% - 12.5px);
+  vertical-align: top;
+}
+#section.abdest .panel.right {
+  margin-left: 0;
+}
+
+/* Contents */
+
+#section.abdest .coord { cursor: inherit; }
+
+#section.abdest .level {
+  color: #F7F700;
+  background: #FF6600;
+  border: solid thin #F08000;
+  border-radius: 1em;
+  font-weight: bold;
+  font-size: 90%;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  line-height: 1em;
+  vertical-align: baseline;
+  text-align: center;
 }
 
 #section.abdest input[type=number] {
   display: inline-block;
   margin: 0.25ex;
-  background: #343C60;
-  border-radius: 4px;
-  border: none;
-  font-size: 125%;
-  font-weight: bold;
-  width: 4em;
+  background: #374460;
   text-align: center;
   color: inherit;
   box-shadow: inset 1px 1px 2px -1px black;
+  border: none;
 }
 
-#section.abdest canvas {
+#dest-x, #dest-y {
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 1.25em;
+  width: 4.5em;
+}
+
+#radar {
+  width: 2.5em;
+}
+
+/* table */
+
+#section.abdest table {
+  border-collapse: separate;
+  border-spacing: 1px;
+  width: 100%;
+}
+
+#section.abdest td,
+#section.abdest th {
+  font-weight: normal;
+  background: #374460;
+  padding: 1px 1ex;
+}
+
+#section.abdest thead td {
+  width: 70%;
+  padding: 0;
+  background: none;
+}
+
+#section.abdest thead th { width: 15%; }
+
+#section.abdest tbody th { text-align: right; }
+#section.abdest tbody td { text-align: center; }
+
+/* canvas and pictures */
+
+#section.abdest canvas,
+#section.abdest img {
   vertical-align: middle;
 }
 
 /* the following rules are used by the script to paint the canvas */
 
 #cape .grid {
-  color: #447;
-  background-color: #343C60;
+  color: #404870;
+  background-color: #374460;
 }
 
 #cape .vernier {
