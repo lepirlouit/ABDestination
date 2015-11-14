@@ -2,7 +2,7 @@
 // @name        ABDestination
 // @namespace   fr.kergoz-panic.watilin
 // @description Choisissez une destination et ce script vous dira quelle direction prendre et quand vous arriverez.
-// @version     2.0
+// @version     2.1
 //
 // @author      Watilin
 // @license     GPLv2; http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
@@ -19,8 +19,8 @@
 // @grant       GM_setValue
 // @grant       GM_getResourceText
 //
-// @resource    ui-html             ./ui.html?v=2.0
-// @resource    ui-css              ./ui.css?v=2.0
+// @resource    ui-html             ui.html?v=2.1
+// @resource    ui-css              ui.css?v=2.1
 // ==/UserScript==
 
 "use strict";
@@ -56,7 +56,6 @@ if (!("contains" in String.prototype)) {
 const π = Math.PI;
 const ANIM_DURATION = 1200; // ms
 const WORMHOLE_THRESHOLD = 4000; // ms
-const FREE_FUEL = 3; // not intended to remain constant
 
 // [@MAI] Main Script Section //////////////////////////////////////////
 
@@ -156,10 +155,12 @@ if (self === top && "/" === location.pathname) { // top-level window
 var injectUI, updateUI;
 (function () {
   var $coordX, $coordY,
-      $engine,
+      $engine, $move, $accel,
+      $radar, $sight,
       $destX, $destY,
       $distH, $distV, $distTot,
-      $trip,
+      $fuel,
+      $gamesE, $daysE, $gamesU, $daysU,
       $cape;
 
   var paintStyles = {};
@@ -192,21 +193,53 @@ var injectUI, updateUI;
     $coordX  = $container.querySelector("#coord-x");
     $coordY  = $container.querySelector("#coord-y");
     $engine  = $container.querySelector("#engine");
+    $move    = $container.querySelector("#move-range");
+    $accel   = $container.querySelector("#accel");
+    $radar   = $container.querySelector("#radar");
+    $sight   = $container.querySelector("#sight-range");
     $destX   = $container.querySelector("#dest-x");
     $destY   = $container.querySelector("#dest-y");
     $distH   = $container.querySelector("#dist-h");
     $distV   = $container.querySelector("#dist-v");
     $distTot = $container.querySelector("#dist-tot");
-    $trip    = $container.querySelector("#trip");
+    $fuel    = $container.querySelector("#fuel");
+    $gamesE  = $container.querySelector("#games-explored");
+    $daysE   = $container.querySelector("#days-explored");
+    $gamesU  = $container.querySelector("#games-unseen");
+    $daysU   = $container.querySelector("#days-unseen");
     $cape    = $container.querySelector("#cape");
+
+    // uncomment following console.log when testing with Chrome
+    // $accel.addEventListener("click", console.log.bind(console));
+    $accel.addEventListener("change", function (event) {
+      GM_setValue("hasAccelerator", this.checked);
+      updateUI();
+    });
+
+    var radarChange = function (event) {
+      var oldRadar = GM_getValue("radar");
+      var newRadar = parseInt($radar.value, 10) || 0;
+      if (newRadar !== oldRadar) {
+        GM_setValue("radar", newRadar);
+        updateUI();
+      }
+    };
+    $radar.addEventListener("change", radarChange);
+    $radar.addEventListener("keyup", radarChange);
 
     var timerId;
     var destinationChange = function (event) {
       clearTimeout(timerId);
       timerId = setTimeout(function () {
-        GM_setValue("destinationX", $destX.value);
-        GM_setValue("destinationY", $destY.value);
-        updateUI();
+        var oldX = GM_getValue("destinationX");
+        var oldY = GM_getValue("destinationY");
+        var newX = parseInt($destX.value, 10) || 0;
+        var newY = parseInt($destY.value, 10) || 0;
+        if (newX !== oldX || newY !== oldY) {
+          GM_setValue("destinationX", parseInt($destX.value, 10) || 0);
+          GM_setValue("destinationY", parseInt($destY.value, 10) || 0);
+          updateUI();
+        }
       }, 200);
     };
 
@@ -225,38 +258,78 @@ var injectUI, updateUI;
   };
 
   updateUI = function updateUI() {
-    var x      = parseInt(GM_getValue("x",            0), 10);
-    var y      = parseInt(GM_getValue("y",            0), 10);
-    var engine = parseInt(GM_getValue("engine",       1), 10);
-    var destX  = parseInt(GM_getValue("destinationX", 0), 10);
-    var destY  = parseInt(GM_getValue("destinationY", 0), 10);
+    var x      = GM_getValue("x"           , 0);
+    var y      = GM_getValue("y"           , 0);
+    var engine = GM_getValue("engine"      , 1);
+    var radar  = GM_getValue("radar"       , 0);
+    var destX  = GM_getValue("destinationX", 0);
+    var destY  = GM_getValue("destinationY", 0);
+    var hasAccel = GM_getValue("hasAccelerator", false);
 
     $coordX.textContent = x;
     $coordY.textContent = y;
-    $engine.textContent = engine;
+    $engine.textContent = engine - 1;
+    $move.textContent = engine;
+    $accel.checked = hasAccel;
 
-    /* Do not use `!==` here. Let the type coercion do its job-- this is
-      for Chrome which sees no problem with inputs of type number having
-      values of type string.
+    if (destX.toString() !== $destX.value) $destX.value = destX;
+    if (destY.toString() !== $destY.value) $destY.value = destY;
+
+    /* About the radar:
+      - radar lvl 1 = 2 squares sight range = 3 squares movement
+      - in diagonal, sight range *= 2 (dist x + dist y)
     */
-    if (destX != $destX.value) $destX.value = destX;
-    if (destY != $destY.value) $destY.value = destY;
+    if (radar.toString() !== $radar.value) $radar.value = radar;
+    var sightRange = radar + 1;
+    $sight.textContent = sightRange;
 
     var distH = destX - x;
     var distV = destY - y;
     var absDistH = Math.abs(distH);
     var absDistV = Math.abs(distV);
     var distTot = absDistH + absDistV;
+    var freeFuel = hasAccel ? 4 : 3;
 
     $distH.textContent = absDistH;
     $distV.textContent = absDistV;
     $distTot.textContent = distTot;
 
-    var days = Math.ceil(distTot / (engine * FREE_FUEL));
-    $trip.textContent = days + (days >= 2 ? "\xA0jours" : "\xA0jour");
+    $fuel.textContent = freeFuel;
+
+    var eGames = Math.ceil(distTot / engine);
+    var eDays = Math.ceil(eGames / freeFuel);
+    $gamesE.textContent = eGames;
+    $daysE.textContent = eDays;
 
     var angle = Math.atan(distV / distH);
     if (distH < 0) angle += π;
+
+    /* To calculate how much movement the radar allows:
+      considering the square “detected” zone, max movement is at the
+      square’s vertices (45deg), min movement is at the center of the
+      square’s edges (0deg, 90deg).
+      In other terms. movement is max when distV = distH; movement is
+      min when one of distX or distY is 0.
+      So we calculate a ratio τ = smallDist / largeDist, and
+      movement is simply sightRange * (1 + τ).
+      Then add 1 because you can move 1 square outside of the “detected”
+      zone.
+      Don’t round the result, as the exact value is required to
+      accurately calculate the radar bias on large distances.
+    */
+    var τ = absDistH < absDistV ?
+      absDistH/absDistV : absDistV/absDistH;
+    var allowedMovement = sightRange * (1 + τ) + 1;
+    console.log("angle = %s°, allowed movement = %s",
+      (angle * 180 / Math.PI).toFixed(3),
+      allowedMovement.toFixed(3));
+
+      var limiter = Math.min(engine, allowedMovement);
+    var uGames = Math.ceil(distTot / limiter);
+    var uDays = Math.ceil(uGames / freeFuel);
+    $gamesU.textContent = uGames;
+    $daysU.textContent = uDays;
+
 
     animateAngleChange(angle, $cape, paintStyles);
   };
@@ -299,7 +372,7 @@ var animateAngleChange = (function () {
       currentAngle = angle;
       draw($cvs, angle, paintStyles);
     }());
-  }
+  };
 }());
 
 function easeOutCubic(x) {
@@ -376,7 +449,7 @@ function draw($cvs, θ, paintStyles) {
   cx.lineDashOffset = 0;
   cx.setLineDash([]);
 
-  // traçage de la flèche
+  // draws the arrow
   /*                      H
      F____________________|\
       \                   G \
