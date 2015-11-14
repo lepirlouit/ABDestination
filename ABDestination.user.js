@@ -160,7 +160,7 @@ var injectUI, updateUI;
       $destX, $destY,
       $distH, $distV, $distTot,
       $fuel,
-      $gamesE, $tripE, $gamesU, $tripU,
+      $gamesE, $daysE, $gamesU, $daysU,
       $cape;
 
   var paintStyles = {};
@@ -204,21 +204,25 @@ var injectUI, updateUI;
     $distTot = $container.querySelector("#dist-tot");
     $fuel    = $container.querySelector("#fuel");
     $gamesE  = $container.querySelector("#games-explored");
-    $tripE   = $container.querySelector("#trip-explored");
+    $daysE   = $container.querySelector("#days-explored");
     $gamesU  = $container.querySelector("#games-unseen");
-    $tripU   = $container.querySelector("#trip-unseen");
+    $daysU   = $container.querySelector("#days-unseen");
     $cape    = $container.querySelector("#cape");
 
     // uncomment following console.log when testing with Chrome
     // $accel.addEventListener("click", console.log.bind(console));
     $accel.addEventListener("change", function (event) {
-      // console.log(this.checked);
       GM_setValue("hasAccelerator", this.checked);
       updateUI();
     });
 
     var radarChange = function (event) {
-      // GM_setValue();
+      var oldRadar = GM_getValue("radar");
+      var newRadar = parseInt($radar.value, 10) || 0;
+      if (newRadar !== oldRadar) {
+        GM_setValue("radar", newRadar);
+        updateUI();
+      }
     };
     $radar.addEventListener("change", radarChange);
     $radar.addEventListener("keyup", radarChange);
@@ -227,9 +231,15 @@ var injectUI, updateUI;
     var destinationChange = function (event) {
       clearTimeout(timerId);
       timerId = setTimeout(function () {
-        GM_setValue("destinationX", $destX.value);
-        GM_setValue("destinationY", $destY.value);
-        updateUI();
+        var oldX = GM_getValue("destinationX");
+        var oldY = GM_getValue("destinationY");
+        var newX = parseInt($destX.value, 10) || 0;
+        var newY = parseInt($destY.value, 10) || 0;
+        if (newX !== oldX || newY !== oldY) {
+          GM_setValue("destinationX", parseInt($destX.value, 10) || 0);
+          GM_setValue("destinationY", parseInt($destY.value, 10) || 0);
+          updateUI();
+        }
       }, 200);
     };
 
@@ -248,12 +258,13 @@ var injectUI, updateUI;
   };
 
   updateUI = function updateUI() {
-    var x      = parseInt(GM_getValue("x",            0), 10);
-    var y      = parseInt(GM_getValue("y",            0), 10);
-    var engine = parseInt(GM_getValue("engine",       1), 10);
-    var destX  = parseInt(GM_getValue("destinationX", 0), 10);
-    var destY  = parseInt(GM_getValue("destinationY", 0), 10);
-    var hasAccel = GM_getValue("hasAccelerator");
+    var x      = GM_getValue("x"           , 0);
+    var y      = GM_getValue("y"           , 0);
+    var engine = GM_getValue("engine"      , 1);
+    var radar  = GM_getValue("radar"       , 0);
+    var destX  = GM_getValue("destinationX", 0);
+    var destY  = GM_getValue("destinationY", 0);
+    var hasAccel = GM_getValue("hasAccelerator", false);
 
     $coordX.textContent = x;
     $coordY.textContent = y;
@@ -263,6 +274,14 @@ var injectUI, updateUI;
 
     if (destX.toString() !== $destX.value) $destX.value = destX;
     if (destY.toString() !== $destY.value) $destY.value = destY;
+
+    /* About the radar:
+      - radar lvl 1 = 2 squares sight range = 3 squares movement
+      - in diagonal, sight range *= 2 (dist x + dist y)
+    */
+    if (radar.toString() !== $radar.value) $radar.value = radar;
+    var sightRange = radar + 1;
+    $sight.textContent = sightRange;
 
     var distH = destX - x;
     var distV = destY - y;
@@ -280,10 +299,37 @@ var injectUI, updateUI;
     var eGames = Math.ceil(distTot / engine);
     var eDays = Math.ceil(eGames / freeFuel);
     $gamesE.textContent = eGames;
-    $tripE.textContent = eDays;
+    $daysE.textContent = eDays;
 
     var angle = Math.atan(distV / distH);
     if (distH < 0) angle += π;
+
+    /* To calculate how much movement the radar allows:
+      considering the square “detected” zone, max movement is at the
+      square’s vertices (45deg), min movement is at the center of the
+      square’s edges (0deg, 90deg).
+      In other terms. movement is max when distV = distH; movement is
+      min when one of distX or distY is 0.
+      So we calculate a ratio τ = smallDist / largeDist, and
+      movement is simply sightRange * (1 + τ).
+      Then add 1 because you can move 1 square outside of the “detected”
+      zone.
+      Don’t round the result, as the exact value is required to
+      accurately calculate the radar bias on large distances.
+    */
+    var τ = absDistH < absDistV ?
+      absDistH/absDistV : absDistV/absDistH;
+    var allowedMovement = sightRange * (1 + τ) + 1;
+    console.log("angle = %s°, allowed movement = %s",
+      (angle * 180 / Math.PI).toFixed(3),
+      allowedMovement.toFixed(3));
+
+      var limiter = Math.min(engine, allowedMovement);
+    var uGames = Math.ceil(distTot / limiter);
+    var uDays = Math.ceil(uGames / freeFuel);
+    $gamesU.textContent = uGames;
+    $daysU.textContent = uDays;
+
 
     animateAngleChange(angle, $cape, paintStyles);
   };
@@ -326,7 +372,7 @@ var animateAngleChange = (function () {
       currentAngle = angle;
       draw($cvs, angle, paintStyles);
     }());
-  }
+  };
 }());
 
 function easeOutCubic(x) {
@@ -403,7 +449,7 @@ function draw($cvs, θ, paintStyles) {
   cx.lineDashOffset = 0;
   cx.setLineDash([]);
 
-  // traçage de la flèche
+  // draws the arrow
   /*                      H
      F____________________|\
       \                   G \
