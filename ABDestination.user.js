@@ -2,7 +2,7 @@
 // @name        ABDestination
 // @namespace   fr.kergoz-panic.watilin
 // @description Choisissez une destination et ce script vous dira quelle direction prendre et quand vous arriverez.
-// @version     2.1
+// @version     2.1.1
 //
 // @author      Watilin
 // @license     GPLv2; http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
@@ -12,6 +12,7 @@
 // @updateURL   https://raw.githubusercontent.com/Watilin/ABDestination/master/ABDestination.meta.js
 //
 // @include     http://www.alphabounce.com/
+// @include     http://www.alphabounce.com/?*
 // @include     http://www.alphabounce.com/user/*
 // @nocompat
 //
@@ -19,8 +20,8 @@
 // @grant       GM_setValue
 // @grant       GM_getResourceText
 //
-// @resource    ui-html             ui.html?v=2.1
-// @resource    ui-css              ui.css?v=2.1
+// @resource    ui-html             ui.html?v=2.1.1
+// @resource    ui-css              ui.css?v=2.1.1
 // ==/UserScript==
 
 "use strict";
