@@ -11,8 +11,8 @@
 // @downloadURL https://raw.githubusercontent.com/Watilin/ABDestination/master/ABDestination.user.js
 // @updateURL   https://raw.githubusercontent.com/Watilin/ABDestination/master/ABDestination.meta.js
 //
-// @include     http://www.alphabounce.com/
-// @include     http://www.alphabounce.com/user/*
+// @include     http*://www.alphabounce.com/
+// @include     http*://www.alphabounce.com/user/*
 // @nocompat
 //
 // @grant       GM_getValue
